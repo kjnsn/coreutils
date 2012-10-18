@@ -1,9 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
+//#include <string.h>
+#include <regex.h>
 
 #define DEBUG 1
 
 #define BUF_LENGTH 4096
+void split(char **result, char *working, const char *delim) {
+  int i;
+  char *p=strtok(working, delim);
+  for(i=0; p!=NULL && i<10; p=strtok(NULL, delim), i++ ) {
+    result[i]=p;
+    result[i+1]=NULL;
+  }
+}
 
 int process_line(const char *line) {
   if (strcmp(line, "exit") == 0)
@@ -12,18 +22,36 @@ int process_line(const char *line) {
   if (strlen(line) < 1)
     return 0;
 
+  regex_t r;
+  if (regcomp(&r, "^[A-Za-z0-9]*=.*", 0)) {
+    fprintf(stderr, "Error compiling regex\n");
+    return 0;
+  }
+
+  if (!regexec(&r, line, 0, NULL, 0)) {
+    printf("setting env: %s\n", line);
+    putenv(line);
+    return 0; 
+  }
+  char *mline = (char *)malloc(strlen(line));
+  memcpy(mline, line, strlen(line));
+
+  char *result[BUF_LENGTH];
+  split(result, mline, " ");
+  printf("split(result, mline \" \"): %s\n", result[0]);
   // run the program
   if (fork() == 0) {
     // child
-    if (execv(strtok(line, " "), NULL) == -1) {
+
+    if (execl(line, line, NULL) == -1) {
       fprintf(stderr, "Error running program: %s\n", line);
       return 0;
     }
 
   } else {
     // parent
-    int status;
-    wait(&status);
+    wait(NULL);
+    return 0;
   }
 
 }
