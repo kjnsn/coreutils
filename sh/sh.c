@@ -1,21 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
+#include <string.h>
 #include <regex.h>
 
 #define DEBUG 1
 
 #define BUF_LENGTH 4096
+#define NARGS 64
+
 void split(char **result, char *working, const char *delim) {
   int i;
-  char *p=strtok(working, delim);
-  for(i=0; p!=NULL && i<10; p=strtok(NULL, delim), i++ ) {
+  char *p = strtok(working, delim);
+  for(i=0; p!=NULL && i<NARGS; p=strtok(NULL, delim), i++ ) {
     result[i]=p;
+    printf("result[%d]: %s\n", i, p);
     result[i+1]=NULL;
   }
 }
 
-int process_line(const char *line) {
+int process_line(char *line) {
   if (strcmp(line, "exit") == 0)
     return 1;
 
@@ -33,19 +36,30 @@ int process_line(const char *line) {
     putenv(line);
     return 0; 
   }
-  char *mline = (char *)malloc(strlen(line));
-  memcpy(mline, line, strlen(line));
 
-  char *result[BUF_LENGTH];
-  split(result, mline, " ");
-  printf("split(result, mline \" \"): %s\n", result[0]);
   // run the program
   if (fork() == 0) {
     // child
 
-    if (execl(line, line, NULL) == -1) {
-      fprintf(stderr, "Error running program: %s\n", line);
-      return 0;
+    char *mline = (char *)malloc(strlen(line));
+    memcpy(mline, line, strlen(line));
+
+    int i = 0;
+    char *args[NARGS];
+    args[i] = strtok(line, " ");
+    while (1) {
+      printf("args[%d]: %s\n", i, args[i]);
+
+      i++;
+      args[i] = strtok(NULL, " ");
+
+      if (args[i] == NULL)
+        break;
+    }
+
+    if (execvp(args[0], args)) {
+      fprintf(stderr, "Error running program: %s\n", args[0]);
+      exit(0);
     }
 
   } else {
