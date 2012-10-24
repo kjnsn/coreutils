@@ -8,16 +8,6 @@
 #define BUF_LENGTH 4096
 #define NARGS 64
 
-void split(char **result, char *working, const char *delim) {
-  int i;
-  char *p = strtok(working, delim);
-  for(i=0; p!=NULL && i<NARGS; p=strtok(NULL, delim), i++ ) {
-    result[i]=p;
-    printf("result[%d]: %s\n", i, p);
-    result[i+1]=NULL;
-  }
-}
-
 int process_line(char *line) {
   if (strcmp(line, "exit") == 0)
     return 1;
@@ -48,8 +38,6 @@ int process_line(char *line) {
     char *args[NARGS];
     args[i] = strtok(line, " ");
     while (1) {
-      printf("args[%d]: %s\n", i, args[i]);
-
       i++;
       args[i] = strtok(NULL, " ");
 
