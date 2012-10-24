@@ -2,11 +2,26 @@
 #include <stdlib.h>
 #include <string.h>
 #include <regex.h>
+#include <unistd.h>
 
 #define DEBUG 1
 
 #define BUF_LENGTH 4096
 #define NARGS 64
+
+void split(char *result[], char *input, const char *delim) {
+  int i = 0;
+  result[i] = strtok(input, delim);
+
+  while (1) {
+    i++;
+    result[i] = strtok(NULL, delim);
+    
+    if (result[i] == NULL)
+      break;
+  }
+}
+
 
 int process_line(char *line) {
   if (strcmp(line, "exit") == 0)
@@ -31,24 +46,35 @@ int process_line(char *line) {
   if (fork() == 0) {
     // child
 
-    char *mline = (char *)malloc(strlen(line));
-    memcpy(mline, line, strlen(line));
-
-    int i = 0;
     char *args[NARGS];
-    args[i] = strtok(line, " ");
-    while (1) {
-      i++;
-      args[i] = strtok(NULL, " ");
+    split(args, line, " ");
 
-      if (args[i] == NULL)
-        break;
+    // Try running the program with the raw filename
+    execvp(args[0], args);
+
+    // Find the file (using $PATH)
+    char *paths[NARGS];
+    split(paths, getenv("PATH"), ":");
+
+    for (int i = 0; paths[i] != NULL; i++) {
+
+      char *p = (char *)malloc(strlen(paths[i]) + strlen(args[0]));
+      strcpy(p, paths[i]);
+      strcat(p, "/");
+      strcat(p, args[0]);
+
+      if (access(p, X_OK ) != -1) {
+        // file exists
+        if (execvp(p, args)) {
+          fprintf(stderr, "Error running program: %s\n", p);
+          exit(0);
+        }
+      }
     }
 
-    if (execvp(args[0], args)) {
-      fprintf(stderr, "Error running program: %s\n", args[0]);
-      exit(0);
-    }
+    // file doesn't exist
+    fprintf(stderr, "could not access file: %s\n", args[0]);
+    exit(0);
 
   } else {
     // parent
