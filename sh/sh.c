@@ -27,6 +27,23 @@ int process_line(char *line) {
   if (strcmp(line, "exit") == 0)
     return 1;
 
+  // Create the argument list
+  char *args[NARGS];
+  split(args, line, " ");
+
+  // Change the directory if required
+  if (strcmp(args[0], "cd") == 0) {
+    if (args[1] == NULL) {
+      fprintf(stderr, "usage: cd <directory>\n");
+      return 0;
+    }
+
+    if (chdir(args[1]) != 0) {
+      fprintf(stderr, "cd: could not change to directory %s\n", args[1]);
+      return 0;
+    }
+  }
+
   if (strlen(line) < 1)
     return 0;
 
@@ -46,8 +63,6 @@ int process_line(char *line) {
   if (fork() == 0) {
     // child
 
-    char *args[NARGS];
-    split(args, line, " ");
 
     // Try running the program with the raw filename
     execvp(args[0], args);
