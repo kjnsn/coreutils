@@ -11,32 +11,44 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  if (access(argv[1], R_OK) != -1) {
+  if (access(argv[1], R_OK) == -1) {
     fprintf(stderr, "error: could not access %s\n", argv[1]);
     exit(1);
   }
 
 
-  FILE *src = open(argv[1], O_RDONLY);
+  int src = open(argv[1], O_RDONLY);
 
-  FILE *dest;
-  char buf[256];
+  int dest;
+  char buf[1024];
   int sz = 0;
 
-  if (dest = open(argv[2], O_CREAT | O_WRONLY) != NULL) {
+  mode_t file_perms;
+  int open_flags = O_CREAT | O_WRONLY | O_TRUNC;
+  file_perms = S_IRUSR | S_IWUSR | S_IRGRP |
+               S_IROTH | S_IWOTH;
 
-    do {
-      if (sz = read(src, (void *)buf, 256) > 0) {
-
-        if (write(dest, (void *)buf, sz) > 0) {
-          fprintf(stderr, "error writing to %s\n", argv[2]);
-          exit(1);
-        }
-
-      } else {
-        fprintf(stderr, "error reading from %s\n", argv[1]);
-        exit(1);
-    } while (sz > 0);
+  dest = open(argv[2], open_flags, file_perms);
+  if (dest == -1) {
+    fprintf(stderr, "error writing to %s\n", argv[2]);
+    exit(1);
   }
+
+  while((sz = read(src, buf, 1024)) > 0) {
+    if (write(dest, buf, sz) != sz) {
+      fprintf(stderr, "error writing to %s\n", argv[2]);
+      exit(1);
+    }
+  }
+
+  if (sz == -1) {
+    fprintf(stderr, "error reading from %s\n", argv[1]);
+    exit(1);
+  }
+
+
+  close(src);
+  close(dest);
+
   return 0;
 }
