@@ -10,6 +10,7 @@ char *curmsg = "\0";
 enum modes { M_DEF, M_INS, M_CMD };
 int mode = M_DEF;
 FILE *fp = NULL;
+int row, col = 0;
 
 
 //==== functions
@@ -36,6 +37,19 @@ int main(int argc, char *argv[]) {
   keypad(stdscr, TRUE);
   noecho();
 
+  // create the field
+  int x, y;
+  getmaxyx(stdscr, y, x);
+  FIELD *main_field[2];
+  main_field[0] = new_field(y - 1, x, 0, 0, 0, 0);
+  main_field[1] = NULL;
+  field_opts_off(main_field[0], O_STATIC); // can get bigger
+
+  // create the form
+  FORM *main_form = new_form(main_field);
+  //post_form(main_form);
+  refresh();
+
 
   if (argc == 1)
     printw("Welcome to vi!");
@@ -56,6 +70,8 @@ int main(int argc, char *argv[]) {
         move(y - 1, 1);
         mode = M_CMD;
       } else if ('i' == cmd) {
+        printf("insert mode\n");
+        printmsg("--- INSERT ---");
         mode = M_INS;
       }
     }
@@ -70,6 +86,9 @@ int main(int argc, char *argv[]) {
       if (strcmp(cmd, "q") == 0) {
         endwin();
         exit(0);
+      } else if (strcmp(cmd, "w") == 0) {
+        char *buf = field_buffer(main_field[0], 0);
+
       } else {
         // if the command was not recognised, go back to default mode
         printmsg("");
@@ -78,6 +97,20 @@ int main(int argc, char *argv[]) {
       }
 
     }
+
+    if (mode == M_INS) {
+      int ch;
+
+      while ((ch = getch()) != 27) {
+        insch(ch);
+        move(row, ++col);
+        refresh();
+      }
+
+      mode = M_DEF;
+      printmsg("");
+    }
+        
   } while (1);
 
 
